@@ -67,7 +67,19 @@ export async function createTestOrganization(label: string): Promise<TestOrgFixt
   // followed by a separate select (a fresh statement, which does see the
   // trigger's committed effect), avoids the race. The app's own
   // createOrganization action already does it this way; this mirrors that.
-  const { error: insertError } = await signedInAs.from("organizations").insert({ name: orgName });
+  //
+  // Retried on "JWT issued at future": an intermittent clock-skew rejection
+  // seen in CI (fresh runner VMs occasionally haven't finished NTP sync the
+  // instant a just-issued token is first used), never seen locally. The
+  // token's iat doesn't change on retry — real time passing is what clears
+  // it, so a short delay and another attempt with the same session resolves
+  // it rather than needing a fresh sign-in.
+  let insertError: { message: string } | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    ({ error: insertError } = await signedInAs.from("organizations").insert({ name: orgName }));
+    if (!insertError || !insertError.message.includes("JWT issued at future")) break;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
   if (insertError) {
     throw new Error(`Failed to create test organization: ${insertError.message}`);
   }
