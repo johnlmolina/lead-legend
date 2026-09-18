@@ -1,0 +1,11 @@
+-- Two organizations must never share a tracked phone number — inbound
+-- webhook routing (src/lib/twilio/inbound-sms.ts, missed-call.ts) works
+-- entirely by looking up an organization via phone_number, so a collision
+-- would mean an inbound text/call from one business's customer silently
+-- landing in a different business's lead database. Caught by
+-- tests/twilio-webhooks.test.ts when a test fixture and a real dev org both
+-- ended up configured with the same number.
+--
+-- A plain UNIQUE constraint already allows multiple NULLs (orgs that
+-- haven't configured a number yet), so this only rejects genuine duplicates.
+alter table organizations add constraint organizations_phone_number_key unique (phone_number);

@@ -1,0 +1,135 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  companyName  String
+  createdAt    DateTime @default(now())
+
+  leads        Lead[]
+  appointments Appointment[]
+  integrations Integration[]
+}
+
+enum LeadSource {
+  CRM
+  AI_CHAT
+  SMS
+  WEBSITE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CALL_SCHEDULED
+  CALL_COMPLETED
+  ESTIMATE_BOOKED
+  WON
+  LOST
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String
+  email     String?
+  source    LeadSource
+  status    LeadStatus @default(NEW)
+  createdAt DateTime   @default(now())
+
+  messages     Message[]
+  calls        CallLog[]
+  appointments Appointment[]
+}
+
+enum MessageChannel {
+  SMS
+  AI_CHAT
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+model Message {
+  id        String           @id @default(cuid())
+  leadId    String
+  lead      Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel   MessageChannel
+  direction MessageDirection
+  body      String
+  createdAt DateTime         @default(now())
+}
+
+enum CallOutcome {
+  BOOKED
+  NO_ANSWER
+  FOLLOW_UP
+  NOT_INTERESTED
+}
+
+model CallLog {
+  id              String           @id @default(cuid())
+  leadId          String
+  lead            Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  direction       MessageDirection
+  durationSeconds Int
+  summary         String
+  outcome         CallOutcome
+  createdAt       DateTime         @default(now())
+}
+
+enum AppointmentType {
+  ESTIMATE
+  FOLLOW_UP
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  leadId      String
+  lead        Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  type        AppointmentType   @default(ESTIMATE)
+  status      AppointmentStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  createdAt   DateTime          @default(now())
+}
+
+enum IntegrationProvider {
+  CRM
+  SMS
+  AI_VOICE
+  CALENDAR
+}
+
+model Integration {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider    IntegrationProvider
+  connected   Boolean             @default(false)
+  phoneNumber String?
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([userId, provider])
+}

@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafaf9;
+  --foreground: #18181b;
+
+  --color-ink: #0b0c0f;
+  --color-ink-2: #16171c;
+
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f0a91e;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+
+  --shadow-color: 240 6% 10%;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: var(--color-ink);
+  --color-ink-2: var(--color-ink-2);
+  --color-accent-50: var(--color-accent-50);
+  --color-accent-100: var(--color-accent-100);
+  --color-accent-400: var(--color-accent-400);
+  --color-accent-500: var(--color-accent-500);
+  --color-accent-600: var(--color-accent-600);
+  --color-accent-700: var(--color-accent-700);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-geist-mono);
+
+  --animate-fade-up: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.6s ease-out both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background-color: var(--color-accent-400);
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * Shared primitives — one visual language, applied everywhere.
+ * ---------------------------------------------------------------- */
+@layer components {
+  .btn-primary {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium
+      transition-all duration-200 ease-out
+      disabled:pointer-events-none disabled:opacity-50
+      focus-visible:outline-none focus-visible:ring-4
+      text-ink shadow-[0_1px_2px_rgba(11,12,15,0.08),0_8px_20px_-8px_rgba(217,119,6,0.55)]
+      bg-gradient-to-b from-accent-400 to-accent-600
+      hover:-translate-y-px hover:shadow-[0_1px_2px_rgba(11,12,15,0.08),0_14px_28px_-10px_rgba(217,119,6,0.65)]
+      active:translate-y-0 active:shadow-[0_1px_2px_rgba(11,12,15,0.08)]
+      focus-visible:ring-accent-400/30;
+  }
+
+  .btn-secondary {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium
+      transition-all duration-200 ease-out
+      disabled:pointer-events-none disabled:opacity-50
+      focus-visible:outline-none focus-visible:ring-4
+      border border-zinc-300/80 bg-white text-zinc-900 shadow-sm
+      hover:-translate-y-px hover:border-zinc-400 hover:shadow-md
+      active:translate-y-0 focus-visible:ring-zinc-900/10;
+  }
+
+  .btn-ghost {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium
+      transition-all duration-200 ease-out
+      disabled:pointer-events-none disabled:opacity-50
+      focus-visible:outline-none focus-visible:ring-4
+      text-zinc-600 hover:bg-zinc-900/5 hover:text-zinc-900 focus-visible:ring-zinc-900/10;
+  }
+
+  .btn-dark {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium
+      transition-all duration-200 ease-out
+      disabled:pointer-events-none disabled:opacity-50
+      focus-visible:outline-none focus-visible:ring-4
+      bg-zinc-900 text-white shadow-sm hover:-translate-y-px hover:bg-zinc-800 hover:shadow-md
+      active:translate-y-0 focus-visible:ring-zinc-900/20;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-danger-ghost {
+    @apply inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium
+      transition-all duration-200 ease-out
+      disabled:pointer-events-none disabled:opacity-50
+      focus-visible:outline-none focus-visible:ring-4
+      text-red-600 hover:bg-red-50 focus-visible:ring-red-500/20;
+  }
+
+  .field-label {
+    @apply block text-[13px] font-medium text-zinc-800;
+  }
+
+  .field-hint {
+    @apply mt-1 text-xs leading-relaxed text-zinc-500;
+  }
+
+  .input {
+    @apply block w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm
+      transition-all duration-150 ease-out
+      placeholder:text-zinc-400
+      focus:border-accent-500 focus:shadow-[0_0_0_4px_rgba(240,169,30,0.14)] focus:outline-none;
+  }
+
+  .card {
+    @apply rounded-2xl border border-zinc-200/80 bg-white shadow-[0_1px_2px_rgba(24,24,27,0.04),0_1px_1px_rgba(24,24,27,0.03)];
+  }
+
+  .card-pad {
+    @apply rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_1px_1px_rgba(24,24,27,0.03)];
+  }
+
+  .section-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent-700;
+  }
+
+  .link-quiet {
+    @apply font-medium text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:decoration-accent-500;
+  }
+}
