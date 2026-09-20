@@ -15,8 +15,8 @@ material changes mid-phase).
 - [x] **Phase 8 — Analytics**
 - [ ] Phase 9 — Stripe billing
 - [~] **Phase 10 — Security review, testing, deployment, docs** (security
-      review + regression pass done; CI written but not running and
-      deployment blocked on `git` — see log)
+      review, regression pass, and CI all done and green; deployment to
+      Vercel remaining — see log)
 
 ## Log
 
@@ -614,3 +614,30 @@ needs your password, so I can't run that fix myself) or telling me you'll
 push this repo and deploy from your own machine instead — either way, I'll
 pick the CI/deployment verification back up once there's a repo to work
 with.
+
+### 2026-09-20 — CI is live and green
+
+You installed the Command Line Tools, and we got `git` working, initialized
+the repo, and pushed it to `github.com/johnlmolina/lead-legend` (private) —
+authenticated via a new SSH key generated on this machine, since there was
+no existing git/GitHub credential here at all. GitHub Actions started
+running `.github/workflows/ci.yml` automatically on push, once you added
+the 11 required/optional secrets under Settings → Secrets and variables →
+Actions.
+
+First run failed with `JWT issued at future` from Supabase on
+`tests/twilio-webhooks.test.ts` — a real but transient clock-skew rejection
+that happens when a fresh CI runner VM's clock hasn't fully finished NTP
+sync the instant a just-issued auth token is first used. Never reproduced
+locally. Fixed by retrying the one query that hit it
+(`tests/helpers/supabase-admin.ts`'s `createTestOrganization`) up to 3
+times with a short delay on that specific error — real time passing clears
+the skew, a new token wouldn't. Verified locally (120/120 unit tests, lint
+clean) and pushed; the next CI run went green.
+
+**CI is done: lint, build, unit tests, and e2e now run automatically on
+every push to `main` and every PR, against your real Supabase project.**
+
+Remaining in Phase 10: actual deployment (Vercel). Fully documented in
+`README.md`'s Deployment section; walking through it live next since it
+needs your Vercel account.

@@ -95,11 +95,11 @@ itself to the end, only the CI automation of it.
   failed) using Stripe's test-mode fixtures; plan-gating tests.
 - **Phase 10**: ⏳ security review checklist done (see below), full
   regression pass done (build/lint clean, 120/120 unit tests, 15/15 e2e).
-  CI workflow written (`.github/workflows/ci.yml`) but not yet running —
-  this machine can't run `git` (Xcode Command Line Tools aren't installed),
-  so the repo isn't pushed to GitHub yet and Actions has nothing to run
-  against. Deployment smoke test pending the same blocker plus a Vercel
-  account/login, which needs you. See `PROGRESS.md`'s Phase 10 entry.
+  CI (`.github/workflows/ci.yml`) is live and green on
+  `github.com/johnlmolina/lead-legend` — lint, build, unit tests, and e2e
+  run automatically on every push/PR against the real Supabase project.
+  Deployment smoke test remaining, pending a Vercel account/login, which
+  needs you. See `PROGRESS.md`'s Phase 10 entry.
 
 ## Security review checklist (Phase 10)
 
