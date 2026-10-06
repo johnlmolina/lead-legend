@@ -64,22 +64,35 @@ export async function bookAppointment(
   if (!timeCheck.valid) return { ok: false, error: timeCheck.error };
   const { start, end } = timeCheck;
 
-  const access = await getOrgCalendarAccess(supabase, membership.organization_id);
-  if (!access) {
-    return { ok: false, error: "Connect Google Calendar in Settings before booking estimates." };
-  }
+  let event: Awaited<ReturnType<typeof createCalendarEvent>>;
+  try {
+    const access = await getOrgCalendarAccess(supabase, membership.organization_id);
+    if (!access) {
+      return { ok: false, error: "Connect Google Calendar in Settings before booking estimates." };
+    }
 
-  const conflict = await hasConflict(access.accessToken, access.calendarId, start, end);
-  if (conflict) {
-    return { ok: false, error: "That time conflicts with something already on the calendar. Pick another." };
-  }
+    const conflict = await hasConflict(access.accessToken, access.calendarId, start, end);
+    if (conflict) {
+      return { ok: false, error: "That time conflicts with something already on the calendar. Pick another." };
+    }
 
-  const event = await createCalendarEvent(access.accessToken, access.calendarId, {
-    summary: title,
-    description: `Booked via Lead Legend for lead: ${lead.name ?? lead.id}`,
-    start,
-    end,
-  });
+    event = await createCalendarEvent(access.accessToken, access.calendarId, {
+      summary: title,
+      description: `Booked via Lead Legend for lead: ${lead.name ?? lead.id}`,
+      start,
+      end,
+    });
+  } catch (err) {
+    // Thrown errors surface to users in production as an opaque error code.
+    // The usual cause is Google rejecting the saved refresh token (expired or
+    // revoked), which only a reconnect fixes.
+    console.error("Google Calendar request failed", err);
+    return {
+      ok: false,
+      error:
+        "Couldn't reach Google Calendar — the connection may have expired or been revoked. Disconnect and reconnect it in Settings, then try again.",
+    };
+  }
 
   const { error: insertError } = await supabase.from("appointments").insert({
     lead_id: leadId,
