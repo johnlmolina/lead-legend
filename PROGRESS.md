@@ -641,3 +641,33 @@ every push to `main` and every PR, against your real Supabase project.**
 Remaining in Phase 10: actual deployment (Vercel). Fully documented in
 `README.md`'s Deployment section; walking through it live next since it
 needs your Vercel account.
+
+### 2026-10-06 — Deployed to Vercel; live smoke test found a missed-call bug
+
+Deployed to `https://lead-legend-2jfm.vercel.app` (Vercel, same Supabase
+project as local dev). Things that came up along the way:
+
+- **The original Twilio number was lost.** After upgrading the trial account
+  to a full one, `+17372324091` no longer existed on the account (confirmed
+  via the Twilio API: active/Full account, zero owned numbers, no
+  subaccounts). Bought a new number, `+12144417876`, and swapped it into
+  `.env.local`, Vercel, the GitHub Actions secret, the org's Settings
+  page, and the Twilio webhooks (voice + SMS pointing at the live URL).
+- **Supabase had auto-paused the project** (free tier, inactivity) — the host
+  stopped resolving and the live app couldn't log in. Restored from the
+  dashboard; no data lost. Worth knowing: this will happen again if the
+  project sits idle for about a week.
+- The demo login (`demo@leadlegend.test`) was created by Claude on
+  2026-09-10 for local testing with a weak throwaway password; it should be
+  changed (via `/update-password`) now that the site is public.
+- **Bug found by the live smoke test**: a missed call created the lead and
+  texted the caller, but the automated follow-up text was never saved to the
+  lead's conversation, so the dashboard showed an empty thread. Fixed in
+  `src/lib/twilio/missed-call.ts` (now records the message, with the
+  Twilio SID). The matching test previously tolerated only Twilio's
+  *trial-account* send error and broke once the account was upgraded; it
+  now mocks only the outbound send (real database otherwise) and asserts
+  the text is recorded. 120/120 unit tests, lint and build clean.
+- Texts from the new number are currently rejected by carriers (Twilio
+  error 30034, "unregistered number") until A2P 10DLC registration is
+  completed — a Twilio/carrier requirement, not an app issue.

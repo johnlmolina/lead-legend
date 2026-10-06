@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canSendToLead } from "@/lib/compliance";
+import { getOrCreateConversation } from "@/lib/conversations";
 import { sendSms, TWILIO_ENABLED } from "./client";
 
 export type DialCallStatus = "completed" | "busy" | "no-answer" | "failed" | "canceled";
@@ -87,11 +88,21 @@ export async function handleMissedCall(
   // organization.phone_number is guaranteed non-null here: we only reached
   // this organization by matching WHERE phone_number = params.to, which came
   // from a real Twilio request.
-  await sendSms(
-    params.from,
-    organization.phone_number!,
-    `Hi, sorry we missed your call! This is ${organization.name} — reply here anytime and we'll get right back to you.`
-  );
+  const followUpBody = `Hi, sorry we missed your call! This is ${organization.name} — reply here anytime and we'll get right back to you.`;
+  const sent = await sendSms(params.from, organization.phone_number!, followUpBody);
+
+  // message_sender has no "system" value, so the automated template is
+  // recorded as "ai" (the closest existing label for non-human outbound).
+  const conversationId = await getOrCreateConversation(admin, lead.id, organization.id);
+  const { error: messageError } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    organization_id: organization.id,
+    direction: "outbound",
+    sender: "ai",
+    body: followUpBody,
+    twilio_sid: sent.sid,
+  });
+  if (messageError) throw new Error(messageError.message);
 
   return { handled: true, smsSent: true };
 }

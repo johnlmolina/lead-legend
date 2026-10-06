@@ -5,7 +5,7 @@
 // tenant-isolation.test.ts: there's no meaningful way to fake this with
 // mocks, since the whole point is verifying organization-scoping and
 // compliance enforcement against a real database.
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   adminClient,
   createTestOrganization,
@@ -14,8 +14,15 @@ import {
 } from "./helpers/supabase-admin";
 import { handleInboundSms } from "@/lib/twilio/inbound-sms";
 import { handleMissedCall } from "@/lib/twilio/missed-call";
+import { sendSms } from "@/lib/twilio/client";
 
-const TWILIO_CONFIGURED = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+// Only the outbound send is mocked — it's a real-world side effect (a real
+// text, real cost, and it can't succeed from a fixture org's made-up number).
+// Everything else here still runs against the real Supabase project.
+vi.mock("@/lib/twilio/client", () => ({
+  TWILIO_ENABLED: true,
+  sendSms: vi.fn(async () => ({ sid: "SM_test_sid" })),
+}));
 
 let orgA: TestOrgFixture;
 let orgB: TestOrgFixture;
@@ -161,27 +168,19 @@ describe("handleMissedCall", () => {
     expect(lead).toBeNull();
   });
 
-  it("creates a lead and call_events row on no-answer before attempting any send", async () => {
-    // The DB bookkeeping (lead + call_events + status bump) happens before
-    // handleMissedCall ever calls sendSms, so it must be correct regardless
-    // of whether the send itself succeeds. On a Twilio trial account, a real
-    // send to an arbitrary (unverified) test number like this one is
-    // expected to fail — trial accounts can only message pre-verified
-    // recipients — so this tolerates that specific failure rather than
-    // requiring a verified test number just to check the bookkeeping.
+  beforeEach(() => {
+    vi.mocked(sendSms).mockClear();
+  });
+
+  it("creates a lead and call_events row on no-answer, texts the caller, and records that text in the conversation", async () => {
     const admin = adminClient();
-    try {
-      await handleMissedCall(admin, {
-        from: "+15552220002",
-        to: "+15550002222",
-        callSid: "CA_test_noanswer",
-        dialCallStatus: "no-answer",
-      });
-    } catch (err) {
-      if (TWILIO_CONFIGURED && !/verified recipient/i.test(String(err))) {
-        throw err;
-      }
-    }
+    const result = await handleMissedCall(admin, {
+      from: "+15552220002",
+      to: "+15550002222",
+      callSid: "CA_test_noanswer",
+      dialCallStatus: "no-answer",
+    });
+    expect(result.smsSent).toBe(true);
 
     const { data: lead } = await admin
       .from("leads")
@@ -198,6 +197,26 @@ describe("handleMissedCall", () => {
       .single();
     expect(callEvent?.status).toBe("no-answer");
     expect(callEvent?.lead_id).toBe(lead!.id);
+
+    expect(sendSms).toHaveBeenCalledTimes(1);
+    const [to, from, body] = vi.mocked(sendSms).mock.calls[0];
+    expect(to).toBe("+15552220002");
+    expect(from).toBe("+15550002222");
+
+    // The text must also show up on the lead's conversation thread — a sent
+    // text that never appears in the dashboard is invisible to the owner.
+    const { data: conversation } = await admin
+      .from("conversations")
+      .select("id")
+      .eq("lead_id", lead!.id)
+      .single();
+    const { data: messages } = await admin
+      .from("messages")
+      .select("direction, sender, body, twilio_sid")
+      .eq("conversation_id", conversation!.id);
+    expect(messages).toEqual([
+      { direction: "outbound", sender: "ai", body, twilio_sid: "SM_test_sid" },
+    ]);
   });
 
   it("does not create anything for a number not registered to any organization", async () => {
@@ -231,16 +250,11 @@ describe("handleMissedCall", () => {
     expect(result.handled).toBe(true);
     expect(result.smsSent).toBe(false);
     expect(result.smsSkippedReason).toMatch(/do not contact/i);
+    expect(sendSms).not.toHaveBeenCalled();
   });
 
-  // No automated test actually completes a real send end-to-end: doing so
-  // needs the org's tracked number to be the real TWILIO_PHONE_NUMBER, but
-  // organizations.phone_number is (correctly, per the migration above)
-  // unique — the only org allowed to own that number in this database is
-  // whichever real one you've configured it for (Demo Roofing Co), so a
-  // test fixture can't safely borrow it. Twilio trial accounts also only
-  // deliver to pre-verified recipient numbers, which rules out testing
-  // against arbitrary numbers anyway. Verified manually instead: see
-  // PROGRESS.md for the real send/receive walkthrough against Demo Roofing
-  // Co once you have a verified recipient number or a paid account.
+  // The real Twilio send isn't exercised automatically: the org's tracked
+  // number must be unique, and the real TWILIO_PHONE_NUMBER belongs to Demo
+  // Roofing Co, so a fixture org can't borrow it. Verified manually instead
+  // — see PROGRESS.md's Phase 10 live smoke test.
 });
