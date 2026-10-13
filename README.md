@@ -6,8 +6,8 @@ inspections/estimates.
 
 ## Status
 
-**Phase 8 of 10 complete — Analytics.** Phase 10 (security review, CI,
-deployment, docs) is in progress. See `PROGRESS.md` for the full phase
+**Phases 1-8 and 10 complete; Phase 9 (Stripe billing) deferred.** Deployed at
+`https://lead-legend-2jfm.vercel.app`. See `PROGRESS.md` for the full phase
 checklist and log.
 
 ## Documents

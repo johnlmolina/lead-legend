@@ -93,13 +93,11 @@ itself to the end, only the CI automation of it.
   every number the page renders matched the fixture data exactly.
 - **Phase 9 (Stripe)**: webhook handling tests (subscription created/canceled/payment
   failed) using Stripe's test-mode fixtures; plan-gating tests.
-- **Phase 10**: ⏳ security review checklist done (see below), full
-  regression pass done (build/lint clean, 120/120 unit tests, 15/15 e2e).
-  CI (`.github/workflows/ci.yml`) is live and green on
-  `github.com/johnlmolina/lead-legend` — lint, build, unit tests, and e2e
-  run automatically on every push/PR against the real Supabase project.
-  Deployment smoke test remaining, pending a Vercel account/login, which
-  needs you. See `PROGRESS.md`'s Phase 10 entry.
+- **Phase 10**: ✅ done. Security review checklist complete (below), full
+  regression pass green, CI live on every push/PR, and the deployment smoke
+  test passed against the live Vercel site (missed call, inbound text,
+  real Google Calendar booking, webhook signature rejection). See
+  `PROGRESS.md`'s Phase 10 entries.
 
 ## Security review checklist (Phase 10)
 

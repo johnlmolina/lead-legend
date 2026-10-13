@@ -14,9 +14,7 @@ material changes mid-phase).
 - [x] **Phase 7 — Google Calendar integration**
 - [x] **Phase 8 — Analytics**
 - [ ] Phase 9 — Stripe billing
-- [~] **Phase 10 — Security review, testing, deployment, docs** (security
-      review, regression pass, and CI all done and green; deployment to
-      Vercel remaining — see log)
+- [x] **Phase 10 — Security review, testing, deployment, docs**
 
 ## Log
 
@@ -671,3 +669,33 @@ project as local dev). Things that came up along the way:
 - Texts from the new number are currently rejected by carriers (Twilio
   error 30034, "unregistered number") until A2P 10DLC registration is
   completed — a Twilio/carrier requirement, not an app issue.
+
+### 2026-10-13 — Phase 10 complete: live deployment verified end to end
+
+Live smoke test against `https://lead-legend-2jfm.vercel.app`, all passing:
+- **Missed call** → lead created, caller hears the greeting, follow-up text
+  attempted and recorded in the conversation.
+- **Inbound text** → appears in the lead's conversation.
+- **Google Calendar** → reconnected on the live site; a booking created a
+  real event (Google event ID stored) and moved the lead to
+  "Appointment booked". Booking works with the production
+  `TOKEN_ENCRYPTION_KEY`.
+- **Webhook signatures** → unsigned requests to both Twilio routes get 403.
+
+Operational things to know (not app bugs):
+- **Supabase free tier auto-pauses after ~7 days idle** (happened twice).
+  While paused, login, texts and calls all fail. The real fix is the Pro
+  plan; a keep-alive ping is only a stopgap.
+- **Google refresh tokens expire after 7 days while the OAuth consent
+  screen is in "Testing"** (a test connection from 9/10 had expired).
+  Publish the consent screen ("In production") to stop this; bookings now
+  show a clear "reconnect" message instead of an error code when it
+  happens.
+- **Carriers reject texts from the new number (Twilio error 30034) until
+  A2P 10DLC registration is approved.** Calls, webhooks, and the in-app
+  flows work; outbound texts to real customers need the registration.
+- Twilio upgrade note: upgrading the trial account lost the original
+  number; replaced with `+12144417876`.
+
+Still open (not Phase 10 work): Phase 9 (Stripe billing), A2P 10DLC
+registration, Supabase Pro, publishing the Google consent screen.
